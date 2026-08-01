@@ -20,7 +20,7 @@ COLOR_DEFAULT = 0x1DA1F2
 COLOR_ERROR   = 0xED4245
 COLOR_SUCCESS = 0x57F287
 
-BANNER_URL = "https://media.discordapp.net/attachments/1275695804945793035/1511292593605181471/5dc9d6a7d1853123e5ec5c3017944906.webp"
+BANNER_URL = "https://media.discordapp.net/attachments/1275695804945793035/1532992637592928307/image_4.png?ex=6a6ede26&is=6a6d8ca6&hm=55446d1b24c1e663d987c73ffadb94c85717e80a6fbf138312be2d28f9fe7314&=&format=webp&quality=lossless&width=186&height=183"
 
 # ============================================================
 #  كاش
