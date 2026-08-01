@@ -8,15 +8,12 @@ import time
 # ============================================================
 #  إعدادات
 # ============================================================
-# إذا كان لديك الـ Cfx ID الخاص بالسيرفر من cfx.re ضع الكود هنا (مثال: "k83z9a")
-# إذا تركته فارغاً "" سيعتمد البوت على الـ IP والمنفذ المباشر
-CFX_SERVER_ID = "" 
+CFX_SERVER_ID = ""  # ضع كود Cfx ID هنا إن وجد (مثال: "k83z9a")
 
 SERVER_IP   = "194.45.197.192"
 SERVER_PORT = "30120"
 GUILD_ID    = 1510735912185630812
 
-# تحديد الروابط بناءً على وجود CFX ID أو الـ IP
 if CFX_SERVER_ID:
     BASE_URL = f"https://servers-frontend.fivem.net/api/servers/single/{CFX_SERVER_ID}"
     INFO_URL = BASE_URL
@@ -24,7 +21,7 @@ else:
     BASE_URL = f"http://{SERVER_IP}:{SERVER_PORT}/players.json"
     INFO_URL = f"http://{SERVER_IP}:{SERVER_PORT}/info.json"
 
-FETCH_TIMEOUT = 10  # زيادة مهلة الانتظار إلى 10 ثوانٍ لتجنب الـ Timeout
+FETCH_TIMEOUT = 4  # مهلة سريعة لتفادي تعليق الديسكورد
 COLOR_DEFAULT = 0x1DA1F2
 COLOR_ERROR   = 0xED4245
 COLOR_SUCCESS = 0x57F287
@@ -105,20 +102,17 @@ async def _fetch_json(url: str, cache_key: str):
     if cached is not None:
         return cached
 
-    session: aiohttp.ClientSession = bot.session
-    if session is None or session.closed:
-        session = aiohttp.ClientSession(
+    if bot.session is None or bot.session.closed:
+        bot.session = aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=False, limit=10)
         )
-        bot.session = session
 
     try:
         async with asyncio.timeout(FETCH_TIMEOUT):
-            async with session.get(url, headers=_HEADERS, allow_redirects=True) as r:
+            async with bot.session.get(url, headers=_HEADERS, allow_redirects=True) as r:
                 if r.status == 200:
                     data = await r.json(content_type=None)
                     
-                    # المعالجة في حال استخدام cfx.re API
                     if CFX_SERVER_ID and isinstance(data, dict) and "Data" in data:
                         if cache_key == "players":
                             data = data["Data"].get("players", [])
@@ -128,11 +122,11 @@ async def _fetch_json(url: str, cache_key: str):
                     _set_cache(cache_key, data)
                     return data
                 else:
-                    print(f"⚠️ خطأ في الاستجابة رمز: {r.status} من {url}")
+                    print(f"⚠️ Server response code: {r.status} for {url}")
     except TimeoutError:
-        print(f"⏱️ انتهت المهلة (Timeout): {url}")
+        print(f"⏱️ Timeout connecting to: {url}")
     except Exception as e:
-        print(f"⚠️ خطأ أثناء جلب البيانات [{url}]: {e}")
+        print(f"⚠️ Fetch error [{url}]: {e}")
     return None
 
 async def fetch_players():
