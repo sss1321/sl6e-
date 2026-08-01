@@ -8,14 +8,23 @@ import time
 # ============================================================
 #  إعدادات
 # ============================================================
+# إذا كان لديك الـ Cfx ID الخاص بالسيرفر من cfx.re ضع الكود هنا (مثال: "k83z9a")
+# إذا تركته فارغاً "" سيعتمد البوت على الـ IP والمنفذ المباشر
+CFX_SERVER_ID = "" 
+
 SERVER_IP   = "194.45.197.192"
 SERVER_PORT = "30120"
 GUILD_ID    = 1510735912185630812
 
-BASE_URL = f"http://{SERVER_IP}:{SERVER_PORT}/players.json"
-INFO_URL = f"http://{SERVER_IP}:{SERVER_PORT}/info.json"
+# تحديد الروابط بناءً على وجود CFX ID أو الـ IP
+if CFX_SERVER_ID:
+    BASE_URL = f"https://servers-frontend.fivem.net/api/servers/single/{CFX_SERVER_ID}"
+    INFO_URL = BASE_URL
+else:
+    BASE_URL = f"http://{SERVER_IP}:{SERVER_PORT}/players.json"
+    INFO_URL = f"http://{SERVER_IP}:{SERVER_PORT}/info.json"
 
-FETCH_TIMEOUT = 5
+FETCH_TIMEOUT = 10  # زيادة مهلة الانتظار إلى 10 ثوانٍ لتجنب الـ Timeout
 COLOR_DEFAULT = 0x1DA1F2
 COLOR_ERROR   = 0xED4245
 COLOR_SUCCESS = 0x57F287
@@ -75,19 +84,19 @@ def error_embed(msg: str) -> discord.Embed:
 
 def panel_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="🎮  SL6E BOT — لوحة التحكم",
+        title="🎮 SL6E BOT — لوحة التحكم",
         description="اختر من الأزرار أدناه",
         color=0x1B6FE4
     )
     embed.set_image(url=BANNER_URL)
-    embed.set_footer(text="SL6E BOT  •  لوحة التحكم")
+    embed.set_footer(text="SL6E BOT • لوحة التحكم")
     return embed
 
 # ============================================================
 #  جلب البيانات
 # ============================================================
 _HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json",
 }
 
@@ -105,15 +114,25 @@ async def _fetch_json(url: str, cache_key: str):
 
     try:
         async with asyncio.timeout(FETCH_TIMEOUT):
-            async with session.get(url, headers=_HEADERS) as r:
+            async with session.get(url, headers=_HEADERS, allow_redirects=True) as r:
                 if r.status == 200:
                     data = await r.json(content_type=None)
+                    
+                    # المعالجة في حال استخدام cfx.re API
+                    if CFX_SERVER_ID and isinstance(data, dict) and "Data" in data:
+                        if cache_key == "players":
+                            data = data["Data"].get("players", [])
+                        elif cache_key == "info":
+                            data = data["Data"]
+
                     _set_cache(cache_key, data)
                     return data
+                else:
+                    print(f"⚠️ خطأ في الاستجابة رمز: {r.status} من {url}")
     except TimeoutError:
-        print(f"⏱️ timeout: {url}")
+        print(f"⏱️ انتهت المهلة (Timeout): {url}")
     except Exception as e:
-        print(f"⚠️ fetch error [{url}]: {e}")
+        print(f"⚠️ خطأ أثناء جلب البيانات [{url}]: {e}")
     return None
 
 async def fetch_players():
